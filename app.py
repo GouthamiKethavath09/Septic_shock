@@ -3,15 +3,15 @@ import numpy as np
 import pandas as pd
 import pickle
 import base64
+import shap
 from tensorflow.keras.models import load_model
 import plotly.graph_objects as go
 import plotly.express as px
-import shap
 
-# ================= MUST BE FIRST ================= #
+# ================= FIRST ================= #
 st.set_page_config(layout="wide")
 
-# FIX SHAP + NUMPY
+# Fix numpy issue
 np.int = int
 
 # ---------------- BACKGROUND ---------------- #
@@ -44,6 +44,11 @@ scaler = pickle.load(open("Notebook/scaler.pkl", "rb"))
 SEQ_LENGTH = 24
 DEFAULT_AGE = 55
 
+FEATURE_NAMES = [
+    "bp","creatinine","heart_rate",
+    "lactate","resp_rate","temperature","wbc","age"
+]
+
 # ---------------- UI ---------------- #
 st.title("🧠 Septic Shock AI Dashboard")
 
@@ -75,10 +80,8 @@ if file:
             st.subheader("🧠 SHAP Explainability")
 
             try:
-                # USE RANDOM BACKGROUND (IMPORTANT)
-                background = np.tile(data_scaled, (20,1,1))
-                background = background.reshape(20, -1)
-
+                # Flatten for SHAP
+                background = data_scaled.reshape(1, -1)
                 sample = data_scaled.reshape(1, -1)
 
                 def predict_fn(x):
@@ -88,16 +91,20 @@ if file:
 
                 shap_values = explainer.shap_values(sample)
 
-                feature_names = df.columns.tolist()
+                # -------- FIX SHAPE -------- #
+                shap_vals = shap_values[0].flatten()
 
-                shap_vals = shap_values[0][:len(feature_names)]
+                # Map only first 8 features
+                shap_vals = shap_vals[:len(FEATURE_NAMES)]
 
                 shap_df = pd.DataFrame({
-                    "Feature": feature_names,
+                    "Feature": FEATURE_NAMES,
                     "Impact": np.abs(shap_vals)
-                }).sort_values(by="Impact", ascending=False)
+                })
 
-                # -------- BAR CHART -------- #
+                shap_df = shap_df.sort_values(by="Impact", ascending=False)
+
+                # -------- BAR -------- #
                 fig = px.bar(
                     shap_df,
                     x="Impact",
@@ -105,22 +112,24 @@ if file:
                     orientation='h',
                     title="Feature Importance"
                 )
+
                 st.plotly_chart(fig, use_container_width=True)
 
                 # -------- WATERFALL -------- #
                 st.subheader("🔥 SHAP Waterfall")
 
                 fig2 = go.Figure(go.Waterfall(
-                    y=feature_names,
+                    y=FEATURE_NAMES,
                     x=shap_vals,
                     orientation="h"
                 ))
+
                 st.plotly_chart(fig2, use_container_width=True)
 
             except Exception as e:
-                st.error("SHAP error: " + str(e))
+                st.error("SHAP Error: " + str(e))
 
-            # ================= RISK TRACK ================= #
+            # ================= RISK TREND ================= #
             st.subheader("📈 Risk Trend")
 
             try:
