@@ -39,7 +39,7 @@ def set_bg(image_file):
     </style>
     """, unsafe_allow_html=True)
 
-set_bg("C:\\Users\\hp\\Desktop\\Septic_shock_prediction\\img.jpg")
+set_bg("img.jpg")
 
 # ---------------- CONFIG ---------------- #
 SEQ_LENGTH = 24
@@ -51,8 +51,8 @@ FEATURE_NAMES = [
 ]
 
 # ---------------- LOAD ---------------- #
-model = load_model("C:\\Users\\hp\\Desktop\\Septic_shock_prediction\\advanced_model.h5", compile=False)
-scaler = pickle.load(open("C:\\Users\\hp\\Desktop\\Septic_shock_prediction\\Notebook\\scaler.pkl", "rb"))
+model = load_model("advanced_model.h5", compile=False)
+scaler = pickle.load(open("Notebook/scaler.pkl", "rb"))
 
 st.set_page_config(layout="wide")
 
