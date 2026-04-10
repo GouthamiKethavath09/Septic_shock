@@ -8,13 +8,13 @@ from tensorflow.keras.models import load_model
 import plotly.graph_objects as go
 import plotly.express as px
 
-# ================= FIRST ================= #
+# ================= PAGE CONFIG ================= #
 st.set_page_config(layout="wide")
 
-# Fix numpy issue
+# Fix numpy compatibility
 np.int = int
 
-# ---------------- BACKGROUND ---------------- #
+# ================= BACKGROUND ================= #
 def set_bg(image_file):
     with open(image_file, "rb") as img:
         encoded = base64.b64encode(img.read()).decode()
@@ -37,7 +37,7 @@ def set_bg(image_file):
 
 set_bg("img.jpg")
 
-# ---------------- LOAD ---------------- #
+# ================= LOAD ================= #
 model = load_model("advanced_model.h5", compile=False)
 scaler = pickle.load(open("Notebook/scaler.pkl", "rb"))
 
@@ -45,11 +45,11 @@ SEQ_LENGTH = 24
 DEFAULT_AGE = 55
 
 FEATURE_NAMES = [
-    "bp","creatinine","heart_rate",
-    "lactate","resp_rate","temperature","wbc","age"
+    "BP","Creatinine","Heart Rate",
+    "Lactate","Resp Rate","Temperature","WBC","Age"
 ]
 
-# ---------------- UI ---------------- #
+# ================= UI ================= #
 st.title("🧠 Septic Shock AI Dashboard")
 
 file = st.file_uploader("Upload CSV (24x7)", type=["csv"])
@@ -65,7 +65,7 @@ if file:
 
         if st.button("🚀 Analyze Patient"):
 
-            # ---------- PREPROCESS ---------- #
+            # ================= PREPROCESS ================= #
             age_col = np.full((SEQ_LENGTH,1), DEFAULT_AGE)
             data = np.hstack([df.values, age_col])
 
@@ -76,15 +76,19 @@ if file:
 
             st.metric("Risk Score", f"{pred:.2f}")
 
-            # ================= SHAP ================= #
+            # ================= SHAP (FINAL FIXED) ================= #
             st.subheader("🧠 SHAP Explainability")
 
             try:
-                # ✅ CORRECT BACKGROUND (IMPORTANT)
-                background = np.repeat(data_scaled, repeats=20, axis=0)  # (20,24,8)
-                background = background.reshape(20, -1)  # (20,192)
+                # 🔥 GOOD BACKGROUND (NOT SAME DATA)
+                background = np.random.normal(
+                    loc=np.mean(data_scaled),
+                    scale=np.std(data_scaled) + 1e-5,
+                    size=(50, 24, 8)
+                )
 
-                sample = data_scaled.reshape(1, -1)  # (1,192)
+                background = background.reshape(50, -1)
+                sample = data_scaled.reshape(1, -1)
 
                 def predict_fn(x):
                     return model.predict(x.reshape(-1,24,8))
@@ -93,17 +97,19 @@ if file:
 
                 shap_values = explainer.shap_values(sample)
 
-                # ✅ FIX SHAPE PROPERLY
-                shap_vals = shap_values[0].flatten()        # (192,)
-                shap_vals = shap_vals.reshape(24,8)         # (24,8)
-                shap_vals = np.mean(shap_vals, axis=0)      # (8,)
+                # ✅ FIX SHAPE
+                shap_vals = shap_values[0].flatten()     # (192,)
+                shap_vals = shap_vals.reshape(24,8)      # (24,8)
+
+                # 🔥 IMPORTANT → SUM (not mean)
+                shap_vals = np.sum(np.abs(shap_vals), axis=0)
 
                 shap_df = pd.DataFrame({
                     "Feature": FEATURE_NAMES,
-                    "Impact": np.abs(shap_vals)
-                }).sort_values(by="Impact", ascending=False)
+                    "Impact": shap_vals
+                }).sort_values(by="Impact", ascending=True)
 
-                # -------- BAR -------- #
+                # -------- BAR CHART -------- #
                 fig = px.bar(
                     shap_df,
                     x="Impact",
@@ -130,11 +136,13 @@ if file:
                 # -------- INSIGHTS -------- #
                 st.subheader("📌 Key Drivers")
 
-                for i in range(3):
-                    st.write(f"👉 {shap_df.iloc[i]['Feature']} strongly influenced prediction")
+                top_features = shap_df.sort_values(by="Impact", ascending=False).head(3)
+
+                for _, row in top_features.iterrows():
+                    st.write(f"👉 {row['Feature']} strongly influenced prediction")
 
             except Exception as e:
-                st.error("SHAP Error: " + str(e))
+                st.error(f"SHAP Error: {e}")
 
             # ================= RISK TREND ================= #
             st.subheader("📈 Risk Trend")
@@ -159,3 +167,13 @@ if file:
 
             except:
                 st.warning("Risk tracking error")
+
+            # ================= FINAL STATUS ================= #
+            st.subheader("🧾 Final Diagnosis")
+
+            if pred > 0.7:
+                st.error("⚠️ High Risk - Immediate ICU Attention Needed")
+            elif pred > 0.4:
+                st.warning("🟠 Moderate Risk - Monitor Closely")
+            else:
+                st.success("✅ Low Risk - Stable Condition")
