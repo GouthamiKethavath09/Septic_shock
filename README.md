@@ -1,185 +1,104 @@
-# 🧠 Septic Shock Prediction System  
-### AI-Powered ICU Decision Support Dashboard
-
----
-## live link: https://septicshockpedictor-hj9vzn62y4scakhtwvbydy.streamlit.app/
-## 📌 Overview
-Septic shock is a life-threatening medical condition caused by severe infection, leading to organ failure and dangerously low blood pressure. Early detection is critical to improving survival rates.
-
-This project presents an AI-powered clinical decision support system that predicts the risk of septic shock using time-series ICU patient data. The system integrates Deep Learning (LSTM) with an interactive Streamlit dashboard to provide real-time risk prediction, clinical insights, visual analytics, and actionable medical recommendations.
+# 🧠 Septic Shock Prediction System using Deep Learning & Explainable AI
 
 ---
 
-## 🎯 Objective
-The main objective of this project is to assist healthcare professionals by:
-- Detecting early signs of septic shock  
-- Monitoring patient vitals continuously  
-- Supporting faster and more accurate clinical decisions  
-- Improving patient outcomes in ICU environments  
+## 📌 Project Overview
+
+Septic shock is a life-threatening medical condition caused by severe infection leading to dangerously low blood pressure and organ failure. Early prediction and timely intervention are critical to saving lives.
+
+This project presents a **complete AI-powered healthcare system** that predicts septic shock risk using **time-series patient data**. It combines **advanced deep learning models (CNN + BiLSTM + Attention)** with **Explainable AI (SHAP)** to provide both accurate predictions and meaningful clinical insights.
+
+The system is deployed using **Streamlit**, offering a real-time, interactive dashboard for doctors, researchers, and healthcare professionals.
 
 ---
 
-## 🧠 System Workflow
-1. Data Input  
-   - Time-series ICU patient data (24 time steps)  
-   - Multiple physiological parameters  
+## 🎯 Objectives
 
-2. Data Preprocessing  
-   - Normalization using MinMaxScaler  
-   - Feature alignment  
-   - Sequence creation for LSTM  
-
-3. Model Prediction  
-   - LSTM model captures temporal patterns  
-   - Outputs probability of septic shock  
-
-4. Visualization & Insights  
-   - Risk meter (gauge chart)  
-   - Vital trends  
-   - Patient vs normal comparison  
-   - AI-based medical interpretation  
+- Develop a deep learning model to predict septic shock risk  
+- Utilize time-series patient data for better accuracy  
+- Integrate Explainable AI (SHAP) for transparency  
+- Provide visual insights for clinical decision-making  
+- Build a deployable end-to-end healthcare AI system  
 
 ---
 
-## 🧪 Input Data Format
-The model expects a CSV file with:
-- 24 rows (time steps)  
-- 7 features  
+## 🧠 Model Architecture (Advanced Deep Learning)
 
-### Features:
-- Blood Pressure (bp)  
-- Creatinine  
-- Heart Rate  
-- Lactate  
-- Respiration Rate  
-- Temperature  
-- White Blood Cell Count (WBC)  
+The model is designed using a hybrid deep learning architecture:
 
----
+### 🔹 1. CNN (Convolutional Neural Network)
+- Extracts local temporal features from patient vitals  
+- Captures short-term fluctuations and patterns  
 
-## 🧠 Model Architecture
-- Model Type: LSTM (Long Short-Term Memory)  
-- Input Shape: (24, 8)  
-- Layers:
-  - LSTM (64 units)  
-  - Dropout  
-  - LSTM (32 units)  
-  - Dense (ReLU)  
-  - Output Layer (Sigmoid)  
+### 🔹 2. BiLSTM (Bidirectional Long Short-Term Memory)
+- Learns long-term dependencies in sequential data  
+- Processes data forward and backward  
+- Improves understanding of patient trends  
 
-### Why LSTM?
-LSTM is ideal for time-series healthcare data because it captures temporal dependencies and patterns across patient vitals over time.
+### 🔹 3. Attention Mechanism
+- Assigns importance weights to different time steps  
+- Focuses on critical medical conditions  
+- Enhances interpretability  
+
+### 🔹 4. Dense Layers
+- Fully connected layers for classification  
+- Final output uses sigmoid activation  
 
 ---
 
-## 📊 Key Features
+## 🧬 Explainable AI (SHAP Integration)
 
-### 🔍 Risk Prediction
-- Predicts probability of septic shock  
-- Classifies into:
-  - Low Risk  
-  - Moderate Risk  
-  - High Risk  
+To make predictions interpretable, SHAP (SHapley Additive exPlanations) is used.
 
----
+### 🔥 SHAP Features Implemented:
 
-### 📊 Patient vs Normal Comparison
-- Compares patient vitals with standard medical values  
-- Highlights abnormal conditions clearly  
-- Improves interpretability  
+- Feature Importance (global impact)
+- SHAP Waterfall (individual feature contribution)
+- Time-wise SHAP (impact across 24 time steps)
+- Positive vs Negative influence
+- Feature contribution distribution (pie chart)
+- AI-based medical explanations
 
----
+### 🧠 Why SHAP?
 
-### 📈 Vital Trends Visualization
-- Displays time-series trends of:
-  - Blood Pressure  
-  - Heart Rate  
-  - Lactate  
-  - WBC  
+- Helps doctors understand *why* a prediction was made  
+- Increases trust in AI systems  
+- Bridges gap between AI and healthcare  
 
 ---
 
-### 🩺 Risk Meter (Gauge Chart)
-- Visual representation of risk level  
-- Color-coded:
-  - Green → Stable  
-  - Orange → Warning  
-  - Red → Critical  
+## 📊 Features Used
+
+| Feature        | Description                        |
+|----------------|----------------------------------|
+| BP             | Blood Pressure                   |
+| Creatinine     | Kidney function indicator        |
+| Heart Rate     | Cardiovascular activity          |
+| Lactate        | Tissue oxygen level              |
+| Resp Rate      | Breathing rate                   |
+| Temperature    | Body temperature                 |
+| WBC            | Infection indicator              |
+| Age            | Patient age                      |
 
 ---
 
-### 🧠 AI-Based Medical Insights
-Automatically identifies:
-- Tissue hypoxia (high lactate)  
-- Hypotension (low BP)  
-- Infection (high WBC)  
-- Stress response (high heart rate)  
+## 📁 Input Data Format
 
----
-
-### 🛡️ Clinical Recommendations
-Provides actionable suggestions:
-- Start IV fluids  
-- Administer vasopressors  
-- Monitor cardiovascular status  
-- Begin antibiotics  
-
----
-
-### 📋 Clinical Summary
-- Displays latest patient values  
-- Helps quick medical assessment  
-
----
-
-### 📄 Report Generation
-- Downloadable patient report  
-- Includes risk score, insights, and diagnosis  
-
----
-
-### 🎨 User Interface
-- Glassmorphism design  
-- Interactive charts using Plotly  
-- Clean and responsive dashboard  
-- Sidebar system overview  
+- CSV file with **24 rows × 7 columns**
+- Each row = one time step
+- Represents patient vitals over time
+- Age is added automatically during preprocessing
 
 ---
 
 ## ⚙️ Tech Stack
 
-### Machine Learning
-- TensorFlow / Keras  
-- LSTM (Deep Learning)
-
-### Data Processing
-- NumPy  
-- Pandas  
-- Scikit-learn  
-
-### Visualization
-- Plotly  
-- Streamlit  
-
-### Frontend
-- Streamlit  
-
----
-
-
-## 📊 Model Performance
-- Accuracy: ~80%  
-- AUROC: ~0.87  
-- Effective for time-series ICU prediction  
-
----
-
-## 💡 Future Enhancements
-- SHAP Explainability  
-- Real-time ICU monitoring  
-- Multi-patient dashboard  
-- Alert notification system  
-- Integration with hospital systems  
+- **Python**
+- **TensorFlow / Keras**
+- **NumPy, Pandas**
+- **SHAP (Explainable AI)**
+- **Plotly (Visualization)**
+- **Streamlit (Deployment UI)**
 
 ---
 
