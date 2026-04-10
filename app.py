@@ -80,9 +80,11 @@ if file:
             st.subheader("🧠 SHAP Explainability")
 
             try:
-                # Flatten for SHAP
-                background = data_scaled.reshape(1, -1)
-                sample = data_scaled.reshape(1, -1)
+                # ✅ CORRECT BACKGROUND (IMPORTANT)
+                background = np.repeat(data_scaled, repeats=20, axis=0)  # (20,24,8)
+                background = background.reshape(20, -1)  # (20,192)
+
+                sample = data_scaled.reshape(1, -1)  # (1,192)
 
                 def predict_fn(x):
                     return model.predict(x.reshape(-1,24,8))
@@ -91,18 +93,15 @@ if file:
 
                 shap_values = explainer.shap_values(sample)
 
-                # -------- FIX SHAPE -------- #
-                shap_vals = shap_values[0].flatten()
-
-                # Map only first 8 features
-                shap_vals = shap_vals[:len(FEATURE_NAMES)]
+                # ✅ FIX SHAPE PROPERLY
+                shap_vals = shap_values[0].flatten()        # (192,)
+                shap_vals = shap_vals.reshape(24,8)         # (24,8)
+                shap_vals = np.mean(shap_vals, axis=0)      # (8,)
 
                 shap_df = pd.DataFrame({
                     "Feature": FEATURE_NAMES,
                     "Impact": np.abs(shap_vals)
-                })
-
-                shap_df = shap_df.sort_values(by="Impact", ascending=False)
+                }).sort_values(by="Impact", ascending=False)
 
                 # -------- BAR -------- #
                 fig = px.bar(
@@ -110,7 +109,9 @@ if file:
                     x="Impact",
                     y="Feature",
                     orientation='h',
-                    title="Feature Importance"
+                    title="🔥 Feature Importance (SHAP)",
+                    color="Impact",
+                    color_continuous_scale="Reds"
                 )
 
                 st.plotly_chart(fig, use_container_width=True)
@@ -125,6 +126,12 @@ if file:
                 ))
 
                 st.plotly_chart(fig2, use_container_width=True)
+
+                # -------- INSIGHTS -------- #
+                st.subheader("📌 Key Drivers")
+
+                for i in range(3):
+                    st.write(f"👉 {shap_df.iloc[i]['Feature']} strongly influenced prediction")
 
             except Exception as e:
                 st.error("SHAP Error: " + str(e))
