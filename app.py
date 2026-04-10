@@ -204,16 +204,22 @@ if st.button("🚀 Analyze Patient"):
             st.metric("Probability", f"{pred:.2f}")
 
         with col2:
+    
             if pred > 0.7:
                 status = "HIGH RISK"
             elif pred > 0.4:
                 status = "MODERATE"
             else:
                 status = "LOW RISK"
+            st.markdown("<div class='glass'><h3>Status</h3></div>", unsafe_allow_html=True)
             st.metric("Condition", status)
 
+
         with col3:
-            st.metric("Confidence", f"{pred*100:.1f}%")
+            
+            st.markdown("<div class='glass'><h3>Confidence</h3></div>", unsafe_allow_html=True)
+            st.metric("Model Confidence", f"{pred*100:.1f}%")
+
 
         # ================= SHAP ================= #
         st.markdown("## 🧠 AI Explainability (SHAP)")
