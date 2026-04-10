@@ -64,10 +64,10 @@ st.sidebar.title("📌 System Overview")
 st.sidebar.info("""
 🔬 AI-powered ICU system
 
-✔ Predicts septic shock risk  
-✔ Analyzes patient vitals  
-✔ Provides medical insights  
-✔ Suggests precautions  
+✔ Predicts septic shock  
+✔ Explains with SHAP  
+✔ Shows attention patterns  
+✔ Gives medical insights  
 
 📊 Features Used:
 - Blood Pressure (BP)
@@ -244,6 +244,120 @@ if st.button("🚀 Analyze Patient"):
 
         except Exception as e:
             st.warning(f"SHAP error: {e}")
+  # ---------------- SUMMARY ---------------- #
+        st.markdown("<div class='glass'><h3>📋 Clinical Summary</h3></div>", unsafe_allow_html=True)
 
+        summary = {
+            "BP": df["bp"].iloc[-1],
+            "Lactate": df["lactate"].iloc[-1],
+            "Heart Rate": df["heart_rate"].iloc[-1],
+            "WBC": df["wbc"].iloc[-1]
+        }
+
+        st.table(pd.DataFrame(summary.items(), columns=["Parameter","Value"]))
+
+        # ---------------- COMPARISON (NOW WORKS) ---------------- #
+        show_comparison(df)
+
+        # ---------------- GAUGE ---------------- #
+        st.markdown("## 🩺 Risk Meter")
+
+        gauge = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=pred,
+            title={'text': "Septic Shock Risk"},
+            gauge={
+                'axis': {'range': [0,1]},
+                'steps': [
+                    {'range': [0,0.4], 'color': "green"},
+                    {'range': [0.4,0.7], 'color': "orange"},
+                    {'range': [0.7,1], 'color': "red"}
+                ]
+            }
+        ))
+
+        st.plotly_chart(gauge, use_container_width=True)
+
+        # ---------------- TRENDS ---------------- #
+        st.markdown("## 📈 Vital Trends")
+
+        df_plot = pd.DataFrame(data, columns=FEATURE_NAMES)
+
+        fig = px.line(df_plot,
+                      y=["bp","heart_rate","lactate","wbc"],
+                      markers=True)
+
+        st.plotly_chart(fig, use_container_width=True)
+
+        # ---------------- RISK TREND ---------------- #
+        st.markdown("## 📊 Risk Progression")
+
+        risk_curve = np.linspace(0, pred, 24)
+
+        fig2 = px.line(y=risk_curve, title="Risk Growth Over Time")
+        st.plotly_chart(fig2, use_container_width=True)
+
+        # ---------------- INSIGHTS ---------------- #
+        st.markdown("<div class='glass'><h3>🧠 Medical Insights</h3></div>", unsafe_allow_html=True)
+
+        insights = []
+        precautions = []
+
+        if df["lactate"].iloc[-1] > 2.5:
+            insights.append("High lactate → tissue hypoxia")
+
+        if df["bp"].iloc[-1] < 90:
+            insights.append("Low BP → shock condition")
+
+        if df["heart_rate"].iloc[-1] > 110:
+            insights.append("High HR → stress response")
+
+        if df["wbc"].iloc[-1] > 12:
+            insights.append("High WBC → infection")
+
+        precautions = [
+            "Start IV fluids",
+            "Administer vasopressors",
+            "Monitor heart",
+            "Start antibiotics"
+        ]
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("### 🔍 Conditions")
+            for i in insights:
+                st.markdown(f"- {i}")
+
+        with col2:
+            st.markdown("### 🛡️ Precautions")
+            for p in precautions:
+                st.markdown(f"- {p}")
+
+        # ---------------- DOWNLOAD REPORT ---------------- #
+        report = f"""
+Septic Shock Report
+
+Risk Score: {pred:.2f}
+Status: {status}
+
+Insights:
+{insights}
+
+Precautions:
+{precautions}
+"""
+
+        st.download_button("📄 Download Report", report, "report.txt")
+
+        # ---------------- FINAL ---------------- #
+        st.markdown("<div class='glass'><h3>📌 Final Diagnosis</h3></div>", unsafe_allow_html=True)
+
+        if pred > 0.7:
+            st.error("⚠️ Immediate ICU intervention required")
+        elif pred > 0.4:
+            st.warning("🟠 Monitor closely")
+        else:
+            st.success("✅ Stable condition")
         # ---------------- REST OF YOUR CODE (UNCHANGED) ---------------- #
         # (Everything below remains exactly same)
