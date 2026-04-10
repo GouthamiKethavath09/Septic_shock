@@ -47,6 +47,7 @@ def set_bg(image_file):
 
 set_bg("img.jpg")
 
+
 # ---------------- CONFIG ---------------- #
 SEQ_LENGTH = 24
 DEFAULT_AGE = 55
