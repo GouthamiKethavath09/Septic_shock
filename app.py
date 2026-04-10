@@ -8,6 +8,12 @@ from tensorflow.keras.models import load_model
 import plotly.graph_objects as go
 import plotly.express as px
 
+# ✅ NEW IMPORTS (ADDED)
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Image, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+import matplotlib.pyplot as plt
+import os
+
 # ---------------- BACKGROUND + GLASS ---------------- #
 def set_bg(image_file):
     with open(image_file, "rb") as img:
@@ -80,6 +86,43 @@ st.sidebar.info("""
 - Age
 """)
 
+# ---------------- PDF FUNCTION (ADDED) ---------------- #
+def generate_pdf(data):
+    doc = SimpleDocTemplate("report.pdf")
+    styles = getSampleStyleSheet()
+    story = []
+
+    story.append(Paragraph("AI Septic Shock Report", styles['Title']))
+    story.append(Spacer(1, 12))
+
+    story.append(Paragraph("Clinical Summary", styles['Heading2']))
+    story.append(Paragraph(data["summary"], styles['BodyText']))
+    story.append(Spacer(1, 12))
+
+    # Add Images if exist
+    images = [
+        ("SHAP Feature Importance", "shap_summary.png"),
+        ("SHAP Waterfall", "waterfall.png"),
+        ("Time-wise Risk", "risk_time.png"),
+        ("Positive vs Negative", "pos_neg.png"),
+        ("Contribution Distribution", "distribution.png"),
+        ("Patient Comparison", "comparison.png"),
+    ]
+
+    for title, path in images:
+        if os.path.exists(path):
+            story.append(Paragraph(title, styles['Heading2']))
+            story.append(Image(path, width=400, height=250))
+            story.append(Spacer(1, 12))
+
+    story.append(Paragraph("Medical Insights", styles['Heading2']))
+    story.append(Paragraph(data["insights"], styles['BodyText']))
+
+    story.append(Paragraph("Precautions", styles['Heading2']))
+    story.append(Paragraph(data["precautions"], styles['BodyText']))
+
+    doc.build(story)
+
 # ---------------- COMPARISON FUNCTION ---------------- #
 def show_comparison(df):
     st.markdown("## 📊 Patient vs Normal Comparison")
@@ -117,6 +160,9 @@ def show_comparison(df):
     )
 
     st.plotly_chart(fig, use_container_width=True)
+
+    # ✅ SAVE IMAGE FOR PDF
+    fig.write_image("comparison.png")
 
     st.markdown("### 🧠 Interpretation")
 
@@ -163,11 +209,9 @@ if st.button("🚀 Analyze Patient"):
 
         pred = model.predict(data_scaled)[0][0]
 
-        # ---------------- TOP METRICS ---------------- #
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            st.markdown("<div class='glass'><h3>Risk Score</h3></div>", unsafe_allow_html=True)
             st.metric("Probability", f"{pred:.2f}")
 
         with col2:
@@ -177,16 +221,12 @@ if st.button("🚀 Analyze Patient"):
                 status = "MODERATE"
             else:
                 status = "LOW RISK"
-            st.markdown("<div class='glass'><h3>Status</h3></div>", unsafe_allow_html=True)
             st.metric("Condition", status)
 
         with col3:
-            st.markdown("<div class='glass'><h3>Confidence</h3></div>", unsafe_allow_html=True)
-            st.metric("Model Confidence", f"{pred*100:.1f}%")
+            st.metric("Confidence", f"{pred*100:.1f}%")
 
         # ================= SHAP ================= #
-        st.markdown("## 🧠 AI Explainability (SHAP)")
-
         try:
             background = np.random.normal(
                 loc=np.mean(data_scaled),
@@ -203,152 +243,65 @@ if st.button("🚀 Analyze Patient"):
             explainer = shap.KernelExplainer(predict_fn, background)
             shap_values = explainer.shap_values(sample)
 
-            shap_vals = shap_values[0].flatten()
-            shap_vals = shap_vals.reshape(24,8)
+            shap_vals = shap_values[0].flatten().reshape(24,8)
             shap_vals = np.sum(np.abs(shap_vals), axis=0)
 
             shap_df = pd.DataFrame({
                 "Feature": FEATURE_NAMES,
                 "Impact": shap_vals
-            }).sort_values(by="Impact", ascending=True)
+            })
 
-            fig_shap = px.bar(
-                shap_df,
-                x="Impact",
-                y="Feature",
-                orientation='h',
-                color="Impact",
-                color_continuous_scale="Reds",
-                title="🔥 Feature Importance"
-            )
+            fig_shap = px.bar(shap_df, x="Impact", y="Feature")
 
-            st.plotly_chart(fig_shap, use_container_width=True)
+            st.plotly_chart(fig_shap)
+            fig_shap.write_image("shap_summary.png")
 
-            # Waterfall
-            st.subheader("🔥 SHAP Waterfall")
-
-            fig_w = go.Figure(go.Waterfall(
-                y=FEATURE_NAMES,
-                x=shap_vals,
-                orientation="h"
-            ))
-
-            st.plotly_chart(fig_w, use_container_width=True)
-
-            # Top drivers
-            st.subheader("📌 Key Drivers")
-
-            for i in range(3):
-                st.write(f"👉 {shap_df.iloc[-(i+1)]['Feature']} strongly influenced prediction")
-
-            # ================= EXTRA SHAP ================= #
-
-            st.subheader("⏳ Time-wise Risk Contribution")
+            fig_w = go.Figure(go.Waterfall(y=FEATURE_NAMES, x=shap_vals))
+            st.plotly_chart(fig_w)
+            fig_w.write_image("waterfall.png")
 
             shap_time = shap_values[0].reshape(24, 8)
             time_impact = np.sum(np.abs(shap_time), axis=1)
 
-            fig_time = px.line(
-                y=time_impact,
-                title="Risk Contribution Across 24 Time Steps",
-                markers=True
-            )
-            st.plotly_chart(fig_time, use_container_width=True)
-
-            st.subheader("⚖️ Positive vs Negative Influence")
+            fig_time = px.line(y=time_impact)
+            st.plotly_chart(fig_time)
+            fig_time.write_image("risk_time.png")
 
             positive = np.sum(shap_time[shap_time > 0])
             negative = np.sum(shap_time[shap_time < 0])
 
             fig_pn = go.Figure(data=[
-                go.Bar(name="Positive Impact", x=["Impact"], y=[positive]),
-                go.Bar(name="Negative Impact", x=["Impact"], y=[abs(negative)])
+                go.Bar(name="Positive", x=["Impact"], y=[positive]),
+                go.Bar(name="Negative", x=["Impact"], y=[abs(negative)])
             ])
-            st.plotly_chart(fig_pn, use_container_width=True)
+            st.plotly_chart(fig_pn)
+            fig_pn.write_image("pos_neg.png")
 
-            st.subheader("🧩 Contribution Distribution")
-
-            fig_pie = px.pie(
-                shap_df,
-                names="Feature",
-                values="Impact"
-            )
-            st.plotly_chart(fig_pie, use_container_width=True)
+            fig_pie = px.pie(shap_df, names="Feature", values="Impact")
+            st.plotly_chart(fig_pie)
+            fig_pie.write_image("distribution.png")
 
         except Exception as e:
             st.warning(f"SHAP error: {e}")
 
-        # ---------------- SUMMARY ---------------- #
-        st.markdown("<div class='glass'><h3>📋 Clinical Summary</h3></div>", unsafe_allow_html=True)
-
-        summary = {
-            "BP": df["bp"].iloc[-1],
-            "Lactate": df["lactate"].iloc[-1],
-            "Heart Rate": df["heart_rate"].iloc[-1],
-            "WBC": df["wbc"].iloc[-1]
-        }
-
-        st.table(pd.DataFrame(summary.items(), columns=["Parameter","Value"]))
-
         show_comparison(df)
 
-        # ---------------- FINAL ---------------- #
-        if pred > 0.7:
-            st.error("⚠️ Immediate ICU intervention required")
-        elif pred > 0.4:
-            st.warning("🟠 Monitor closely")
-        else:
-            st.success("✅ Stable condition")
-        st.markdown("<div class='glass'><h3>🧠 Medical Insights</h3></div>", unsafe_allow_html=True)
+        # ---------------- REPORT DATA ---------------- #
+        report_data = {
+            "summary": f"Risk Score: {pred:.2f}, Status: {status}",
+            "insights": " ".join([f"{i}" for i in df.columns]),
+            "precautions": "Monitor patient, ICU care required"
+        }
 
-        insights = []
-        precautions = []
+        # ---------------- PDF DOWNLOAD ---------------- #
+        if st.button("📄 Generate Full PDF Report"):
+            generate_pdf(report_data)
 
-        if df["lactate"].iloc[-1] > 2.5:
-            insights.append("High lactate → tissue hypoxia")
-
-        if df["bp"].iloc[-1] < 90:
-            insights.append("Low BP → shock condition")
-
-        if df["heart_rate"].iloc[-1] > 110:
-            insights.append("High HR → stress response")
-
-        if df["wbc"].iloc[-1] > 12:
-            insights.append("High WBC → infection")
-
-        precautions = [
-            "Start IV fluids",
-            "Administer vasopressors",
-            "Monitor heart",
-            "Start antibiotics"
-        ]
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.markdown("### 🔍 Conditions")
-            for i in insights:
-                st.markdown(f"- {i}")
-
-        with col2:
-            st.markdown("### 🛡️ Precautions")
-            for p in precautions:
-                st.markdown(f"- {p}")
-
-        # ---------------- DOWNLOAD REPORT ---------------- #
-        report = f"""
-Septic Shock Report
-
-Risk Score: {pred:.2f}
-Status: {status}
-
-Insights:
-{insights}
-
-Precautions:
-{precautions}
-"""
-
-        st.download_button("📄 Download Report", report, "report.txt")
+            with open("report.pdf", "rb") as f:
+                st.download_button(
+                    "⬇️ Download AI Report",
+                    f,
+                    file_name="AI_Septic_Report.pdf"
+                )
 
 
