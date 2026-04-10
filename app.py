@@ -247,11 +247,11 @@ if st.button("🚀 Analyze Patient"):
         st.subheader("🔥 Risk Contribution View")
 
         try:
-    fig_force = px.bar(
-        x=FEATURE_NAMES,
-        y=feature_impact,
-        title="Contribution of Each Feature"
-    )
+           fig_force = px.bar(
+               x=FEATURE_NAMES,
+               y=feature_impact,
+               title="Contribution of Each Feature"
+           )
 
            st.plotly_chart(fig_force, use_container_width=True)
 
