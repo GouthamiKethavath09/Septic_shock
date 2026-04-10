@@ -38,7 +38,7 @@ def set_bg(image_file):
 set_bg("img.jpg")
 
 # ---------------- LOAD ---------------- #
-model = load_model("advanced_model.keras", compile=False)
+model = load_model("advanced_model.h5", compile=False)
 scaler = pickle.load(open("Notebook/scaler.pkl", "rb"))
 
 SEQ_LENGTH = 24
