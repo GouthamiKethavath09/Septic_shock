@@ -5,7 +5,7 @@
 ## 📌 Project Overview
 
 Septic shock is a life-threatening medical condition caused by severe infection leading to dangerously low blood pressure and organ failure. Early prediction and timely intervention are critical to saving lives.
-
+Live link: https://septicshock-svnrq6nilpywkisvappppdzq.streamlit.app/
 This project presents a **complete AI-powered healthcare system** that predicts septic shock risk using **time-series patient data**. It combines **advanced deep learning models (CNN + BiLSTM + Attention)** with **Explainable AI (SHAP)** to provide both accurate predictions and meaningful clinical insights.
 
 The system is deployed using **Streamlit**, offering a real-time, interactive dashboard for doctors, researchers, and healthcare professionals.
