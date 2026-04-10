@@ -85,7 +85,7 @@ st.sidebar.info("""
 - Age
 """)
 
-# ---------------- PDF FUNCTION (ADDED) ---------------- #
+# ---------------- PDF FUNCTION ---------------- #
 def create_pdf(pred, status, insights, precautions):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer)
@@ -196,7 +196,6 @@ if st.button("🚀 Analyze Patient"):
 
         pred = model.predict(data_scaled)[0][0]
 
-        # ---------------- TOP METRICS ---------------- #
         col1, col2, col3 = st.columns(3)
 
         with col1:
@@ -210,14 +209,92 @@ if st.button("🚀 Analyze Patient"):
                 status = "MODERATE"
             else:
                 status = "LOW RISK"
-            st.markdown("<div class='glass'><h3>Status</h3></div>", unsafe_allow_html=True)
             st.metric("Condition", status)
 
         with col3:
-            st.markdown("<div class='glass'><h3>Confidence</h3></div>", unsafe_allow_html=True)
-            st.metric("Model Confidence", f"{pred*100:.1f}%")
+            st.metric("Confidence", f"{pred*100:.1f}%")
 
-        # (SHAP PART UNCHANGED...)
+        # ================= SHAP ================= #
+        st.markdown("## 🧠 AI Explainability (SHAP)")
+
+        try:
+            background = np.random.normal(
+                loc=np.mean(data_scaled),
+                scale=np.std(data_scaled) + 1e-5,
+                size=(50,24,8)
+            )
+
+            background = background.reshape(50, -1)
+            sample = data_scaled.reshape(1, -1)
+
+            def predict_fn(x):
+                return model.predict(x.reshape(-1,24,8))
+
+            explainer = shap.KernelExplainer(predict_fn, background)
+            shap_values = explainer.shap_values(sample)
+
+            shap_vals = shap_values[0].flatten()
+            shap_vals = shap_vals.reshape(24,8)
+            shap_vals = np.sum(np.abs(shap_vals), axis=0)
+
+            shap_df = pd.DataFrame({
+                "Feature": FEATURE_NAMES,
+                "Impact": shap_vals
+            }).sort_values(by="Impact", ascending=True)
+
+            fig_shap = px.bar(
+                shap_df,
+                x="Impact",
+                y="Feature",
+                orientation='h',
+                color="Impact",
+                color_continuous_scale="Reds",
+                title="🔥 Feature Importance"
+            )
+
+            st.plotly_chart(fig_shap, use_container_width=True)
+
+            st.subheader("🔥 SHAP Waterfall")
+
+            fig_w = go.Figure(go.Waterfall(
+                y=FEATURE_NAMES,
+                x=shap_vals,
+                orientation="h"
+            ))
+
+            st.plotly_chart(fig_w, use_container_width=True)
+
+            st.subheader("📌 Key Drivers")
+
+            for i in range(3):
+                st.write(f"👉 {shap_df.iloc[-(i+1)]['Feature']} strongly influenced prediction")
+
+            st.subheader("⏳ Time-wise Risk Contribution")
+
+            shap_time = shap_values[0].reshape(24, 8)
+            time_impact = np.sum(np.abs(shap_time), axis=1)
+
+            fig_time = px.line(y=time_impact, markers=True)
+            st.plotly_chart(fig_time, use_container_width=True)
+
+            st.subheader("⚖️ Positive vs Negative Influence")
+
+            positive = np.sum(shap_time[shap_time > 0])
+            negative = np.sum(shap_time[shap_time < 0])
+
+            fig_pn = go.Figure(data=[
+                go.Bar(name="Positive Impact", x=["Impact"], y=[positive]),
+                go.Bar(name="Negative Impact", x=["Impact"], y=[abs(negative)])
+            ])
+            st.plotly_chart(fig_pn, use_container_width=True)
+
+            st.subheader("🧩 Contribution Distribution")
+
+            fig_pie = px.pie(shap_df, names="Feature", values="Impact")
+            st.plotly_chart(fig_pie, use_container_width=True)
+
+        except Exception as e:
+            st.warning(f"SHAP error: {e}")
 
         # ---------------- SUMMARY ---------------- #
         st.markdown("<div class='glass'><h3>📋 Clinical Summary</h3></div>", unsafe_allow_html=True)
@@ -277,7 +354,7 @@ if st.button("🚀 Analyze Patient"):
             for p in precautions:
                 st.markdown(f"- {p}")
 
-        # ✅ PDF DOWNLOAD (FINAL)
+        # ✅ FINAL PDF DOWNLOAD
         pdf_file = create_pdf(pred, status, insights, precautions)
 
         st.download_button(
