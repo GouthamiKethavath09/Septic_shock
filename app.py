@@ -246,17 +246,17 @@ if st.button("🚀 Analyze Patient"):
             st.warning(f"SHAP error: {e}")
         st.subheader("🔥 Risk Contribution View")
 
-try:
+        try:
     fig_force = px.bar(
         x=FEATURE_NAMES,
         y=feature_impact,
         title="Contribution of Each Feature"
     )
 
-    st.plotly_chart(fig_force, use_container_width=True)
+           st.plotly_chart(fig_force, use_container_width=True)
 
-except:
-    st.warning("Force plot error")
+       except:
+           st.warning("Force plot error")
   # ---------------- SUMMARY ---------------- #
         st.markdown("<div class='glass'><h3>📋 Clinical Summary</h3></div>", unsafe_allow_html=True)
 
