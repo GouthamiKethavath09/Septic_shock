@@ -338,6 +338,10 @@ if st.button("🚀 Analyze Patient"):
             for p in precautions:
                 st.markdown(f"- {p}")
 def create_pdf(pred, status, insights, precautions):
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet
+    import io
+
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer)
     styles = getSampleStyleSheet()
@@ -370,7 +374,7 @@ st.download_button(
     data=pdf_file,
     file_name="Septic_Shock_Report.pdf",
     mime="application/pdf"
-)
+)      
 
 
 
